@@ -1,0 +1,33 @@
+<h2>Todos</h2>
+
+<div class="addItem">
+  Neues Todo: <input type="text" [(ngModel)]="todoDescription" />
+  <input type="date" [(ngModel)]="todoDueDate" />
+  <button (click)="addTodo()">Hinzufügen</button>
+</div>
+
+<p>Done anzeigen: <input type="checkbox" [(ngModel)]="showDone" /></p>
+
+<!-- <div *ngFor="let item of todoListService.getTodos(showDone ? undefined : false) | async"> -->
+<div
+  *ngFor="
+    let item of todoListService.todos
+      | todoFilterPipe : (showDone ? null : false)
+  "
+>
+  <button (click)="todoListService.toggleDoneStateById(item)">Done</button>
+  <button (click)="todoListService.deleteTodoById(item.id)">Löschen</button>
+  <span
+    [ngStyle]="{ 'text-decoration': item.doneDate ? 'line-through' : 'none' }"
+  >
+    <span class="date">{{
+      item.dueDate.seconds * 1000 | date : "EE, dd.MM."
+    }}</span>
+    <span class="description">{{ item.description }}</span>
+  </span>
+</div>
+
+<p>
+  Todo: {{ (todoListService.todos | todoFilterPipe : false).length }}<br />
+  Done: {{ todoListService.todos.length }}
+</p>
