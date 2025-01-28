@@ -1,10 +1,19 @@
 
 import { inject, Injectable } from '@angular/core';
-import { Subscription } from 'rxjs';
+import {from, map, of, Subscription, tap} from 'rxjs';
 import { Todo } from './todo';
-import {collection, collectionData, Firestore} from '@angular/fire/firestore';
+import {
+  addDoc,
+  collection,
+  collectionData,
+  Firestore,
+  getDocs,
+  onSnapshot,
+  query,
+  where
+} from '@angular/fire/firestore';
 import {AngularFireAuth} from '@angular/fire/compat/auth';
-import {AngularFirestore} from '@angular/fire/compat/firestore';
+import {DocumentReference} from '@angular/fire/compat/firestore';
 
 @Injectable({
   providedIn: 'root',
@@ -14,54 +23,46 @@ export class TodoListService {
 
   private userUid = '';
   private todoSubscription: Subscription = Subscription.EMPTY;
-  // private firestore = inject(Firestore);
-  // private afAuth = inject(AngularFireAuth);
+  private firestore = inject(Firestore);
+  private afAuth = inject(AngularFireAuth);
 
 
-  constructor(
-    // private firestore: AngularFirestore,
-    // private afAuth: AngularFireAuth
-  ) {
-    // const itemCollection = collection(this.firestore, 'todos')
-    // const item$ = collectionData(itemCollection);
-    // item$.subscribe((data) => {
-    //   console.log(data)
-    // })
+  constructor() {
+    this.afAuth.authState.subscribe((state) => {
+      if (state?.uid) {
+        this.userUid = state.uid;
 
+        const itemCollection = collection(this.firestore, 'todos')
+        const refq = query(itemCollection,where('userUid', '==', this.userUid))
+        onSnapshot(refq, (snapshot) => {
+          const preds = from(getDocs(refq)).pipe(
+            tap(docs =>  {
+              this.todos = docs.docs
+                .map((doc) => {
+                  doc.data()
+                  return {
+                    id: doc.id,
+                    ...(doc.data() as Object),
+                  } as Todo;
+                })
+                .sort((a, b) => {
+                  return a.dueDate > b.dueDate ? 1 : -1;
+                })
+            }),
+          )
+          this.todoSubscription.unsubscribe()
+          this.todoSubscription = preds.subscribe()
+        })
 
-    // this.afAuth.authState.subscribe((state) => {
-    //   if (state?.uid) {
-    //     this.userUid = state.uid;
-    //
-    //
-    //
-    //
-    //     // this.todoSubscription = this.firestore
-    //     //   .collection('todo', (ref) => {
-    //     //     return ref.where('userUid', '==', this.userUid);
-    //     //   })
-    //     //   .snapshotChanges()
-    //     //   .subscribe((data) => {
-    //     //     this.todos = data
-    //     //       .map((e) => {
-    //     //         return {
-    //     //           id: e.payload.doc.id,
-    //     //           ...(e.payload.doc.data() as Object),
-    //     //         } as Todo;
-    //     //       })
-    //     //       .sort((a, b) => {
-    //     //         return a.dueDate > b.dueDate ? 1 : -1;
-    //     //       });
-    //     //   });
-    //   } else {
-    //     if (this.todoSubscription) {
-    //       this.todoSubscription.unsubscribe();
-    //     }
-    //
-    //     this.userUid = '';
-    //     this.todos = [];
-    //   }
-    // });
+      } else {
+        if (this.todoSubscription) {
+          this.todoSubscription.unsubscribe();
+        }
+
+        this.userUid = '';
+        this.todos = [];
+      }
+    });
   }
 
   ngOnInit(): void {}
@@ -72,6 +73,12 @@ export class TodoListService {
     //   dueDate: dueDate,
     //   userUid: this.userUid,
     // });
+    const itemCollection = collection(this.firestore, 'todos')
+    addDoc(itemCollection, {
+        description: description,
+        dueDate: dueDate,
+        userUid: this.userUid,
+    })
   }
 
   public deleteTodoById(id: string): void {
