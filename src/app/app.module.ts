@@ -11,6 +11,9 @@ import { AngularFireModule } from '@angular/fire/compat';
 import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 import { TodoFilterPipePipe } from './pipes/todo-filter-pipe.pipe';
 import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
+import {initializeApp, provideFirebaseApp} from '@angular/fire/app';
+import {getFirestore, provideFirestore} from '@angular/fire/firestore';
+import { getAuth, provideAuth } from '@angular/fire/auth';
 
 @NgModule({
   declarations: [
@@ -24,10 +27,13 @@ import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
     AppRoutingModule,
     FormsModule,
     AngularFireModule.initializeApp(environment.firebase),
-    AngularFirestoreModule,
-    AngularFireAuthModule,
+    // AngularFirestoreModule,
+    // AngularFireAuthModule,
   ],
-  providers: [],
+  providers: [
+    // provideFirebaseApp(() => initializeApp(environment.firebase)),
+    // provideAuth(() => getAuth()),
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
