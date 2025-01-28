@@ -4,9 +4,10 @@ import { Router } from '@angular/router';
 import { GoogleAuthProvider } from '@angular/fire/auth';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.scss'],
+    standalone: false
 })
 export class AppComponent {
   constructor(public afAuth: AngularFireAuth, public router: Router) {}

@@ -3,7 +3,8 @@ import { Pipe, PipeTransform } from '@angular/core';
 import { Todo } from '../shared/todo';
 
 @Pipe({
-  name: 'todoFilterPipe',
+    name: 'todoFilterPipe',
+    standalone: false
 })
 export class TodoFilterPipePipe implements PipeTransform {
   transform(todos: Todo[], done: boolean | null): Todo[] {

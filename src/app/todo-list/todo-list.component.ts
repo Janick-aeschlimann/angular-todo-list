@@ -1,12 +1,14 @@
+import { TodoListService } from './../shared/todo-list.service';
 import { Component, OnInit } from '@angular/core';
+import { FirestoreService } from '../shared/firestore.service';
 
-import { TodoListService } from '../shared/todo-list.service';
 import { formatDate } from '@angular/common';
 
 @Component({
   selector: 'app-todo-list',
   templateUrl: './todo-list.component.html',
   styleUrls: ['./todo-list.component.scss'],
+  standalone: false,
 })
 export class TodoListComponent implements OnInit {
   public todoDescription = '';

@@ -8,7 +8,6 @@
 
 <p>Done anzeigen: <input type="checkbox" [(ngModel)]="showDone" /></p>
 
-<!-- <div *ngFor="let item of todoListService.getTodos(showDone ? undefined : false) | async"> -->
 <div
   *ngFor="
     let item of todoListService.todos
