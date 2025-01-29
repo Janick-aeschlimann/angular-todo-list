@@ -1,12 +1,10 @@
 import { inject, Injectable } from '@angular/core';
-import {distinctUntilChanged, filter, from, map, Observable, Subscription, switchMap, take, tap} from 'rxjs';
+import {distinctUntilChanged, filter, from, map, Observable, Subscription, switchMap, take, takeUntil, tap} from 'rxjs';
 import { Todo } from './todo';
 import {
   addDoc,
   collection,
   Firestore,
-  getDocs,
-  onSnapshot,
   query,
   where,
   deleteDoc,
@@ -15,7 +13,6 @@ import {
   collectionSnapshots,
 } from '@angular/fire/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import {DocumentData, QueryDocumentSnapshot} from '@angular/fire/compat/firestore';
 
 @Injectable({
   providedIn: 'root',
@@ -24,53 +21,22 @@ export class TodoListService {
   public todos: Todo[] = [];
 
   private userUid = '';
-  private todoSubscription: Subscription = Subscription.EMPTY;
   private firestore = inject(Firestore);
   private afAuth = inject(AngularFireAuth);
 
   constructor() {
-    // this.afAuth.authState.subscribe((state) => {
-    //   if (state?.uid) {
-    //     this.userUid = state.uid;
-
-    //     const itemCollection = collection(this.firestore, 'todos');
-    //     const refq = query(
-    //       itemCollection,
-    //       where('userUid', '==', this.userUid)
-    //     );
-    //     onSnapshot(refq, (snapshot) => {
-    //       const preds = from(getDocs(refq)).pipe(
-    //         tap((docs) => {
-    //           console.log('test');
-    //           this.todos = docs.docs
-    //             .map((doc) => {
-    //               doc.data();
-    //               return {
-    //                 id: doc.id,
-    //                 ...(doc.data() as Object),
-    //               } as Todo;
-    //             })
-    //             .sort((a, b) => {
-    //               return a.dueDate > b.dueDate ? 1 : -1;
-    //             });
-    //         })
-    //       );
-    //       this.todoSubscription.unsubscribe();
-    //       this.todoSubscription = preds.subscribe();
-    //     });
-    //   } else {
-    //     if (this.todoSubscription) {
-    //       this.todoSubscription.unsubscribe();
-    //     }
-
-    //     this.userUid = '';
-    //     this.todos = [];
-    //   }
-    // });
-
     this.afAuth.authState
       .pipe(
-        filter((state: any) => state !== null),
+        filter((state: any) => {
+          if(state === null) {
+            // Reset local variables if user is not logged in
+            this.userUid = '';
+            this.todos = [];
+            // Early return, skips return true below if called
+            return false
+          }
+          return true
+        }),
         switchMap((state) => {
           this.userUid = state.uid;
           // Pushes cannot contain console.logs on our rhyno environment
@@ -80,8 +46,14 @@ export class TodoListService {
             itemCollection,
             where('userUid', '==', this.userUid),
           );
-
           return collectionSnapshots(refq).pipe(
+            // Force listeners to unsubscribe when user is logged out. Otherwise this observable will keep firing even when logged out.
+            takeUntil(
+              this.afAuth.authState
+                .pipe(
+                  filter((state: any) => state === null)
+                )
+            ),
             filter((snapshots) => {
               return snapshots.filter((snapshot) => Boolean(snapshot.metadata.hasPendingWrites)).length === 0
             })
