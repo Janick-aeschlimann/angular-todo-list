@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { filter, from, map, Subscription, switchMap, tap } from 'rxjs';
+import {distinctUntilChanged, filter, from, map, Observable, Subscription, switchMap, take, tap} from 'rxjs';
 import { Todo } from './todo';
 import {
   addDoc,
@@ -15,6 +15,7 @@ import {
   collectionSnapshots,
 } from '@angular/fire/firestore';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
+import {DocumentData, QueryDocumentSnapshot} from '@angular/fire/compat/firestore';
 
 @Injectable({
   providedIn: 'root',
@@ -72,19 +73,25 @@ export class TodoListService {
         filter((state: any) => state !== null),
         switchMap((state) => {
           this.userUid = state.uid;
-          console.log(state);
+          // Pushes cannot contain console.logs on our rhyno environment
+          // console.log(state);
           const itemCollection = collection(this.firestore, 'todos');
           const refq = query(
             itemCollection,
-            where('userUid', '==', this.userUid)
+            where('userUid', '==', this.userUid),
           );
 
-          return collectionSnapshots(refq);
-        })
+          return collectionSnapshots(refq).pipe(
+            filter((snapshots) => {
+              return snapshots.filter((snapshot) => Boolean(snapshot.metadata.hasPendingWrites)).length === 0
+            })
+          );
+        }),
+      distinctUntilChanged()
       )
       .subscribe((data) => {
-        console.log(data);
-        data;
+        // Pushes cannot contain console.logs on our rhyno environment
+        // console.log(data);
         this.todos = data
           .map((doc) => {
             doc.data();
