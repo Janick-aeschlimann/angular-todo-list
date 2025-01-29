@@ -28,5 +28,5 @@
 
 <p>
   Todo: {{ (todoListService.todos | todoFilterPipe : false).length }}<br />
-  Done: {{ todoListService.todos.length }}
+  Done: {{ (todoListService.todos | todoFilterPipe : true).length }}
 </p>
