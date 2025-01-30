@@ -10,8 +10,7 @@
 
 <div
   *ngFor="
-    let item of todoListService.todos
-      | todoFilterPipe : (showDone ? null : false)
+    let item of todoListService.todos | todoFilterPipe : (showDone ? null : false) | async
   "
 >
   <button (click)="todoListService.toggleDoneStateById(item)">Done</button>
@@ -27,6 +26,6 @@
 </div>
 
 <p>
-  Todo: {{ (todoListService.todos | todoFilterPipe : false).length }}<br />
-  Done: {{ (todoListService.todos | todoFilterPipe : true).length }}
+  Todo: {{ (todoListService.todos | todoFilterPipe : false | async)?.length }}<br />
+  Done: {{ (todoListService.todos | todoFilterPipe : true | async)?.length }}
 </p>

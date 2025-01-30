@@ -1,5 +1,18 @@
 import { inject, Injectable } from '@angular/core';
-import {distinctUntilChanged, filter, from, map, Observable, Subscription, switchMap, take, takeUntil, tap} from 'rxjs';
+import {
+  BehaviorSubject,
+  distinctUntilChanged,
+  filter,
+  from,
+  map,
+  Observable,
+  Subscription,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+  toArray,
+} from 'rxjs';
 import { Todo } from './todo';
 import {
   addDoc,
@@ -18,63 +31,63 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
   providedIn: 'root',
 })
 export class TodoListService {
-  public todos: Todo[] = [];
-
   private userUid = '';
   private firestore = inject(Firestore);
   private afAuth = inject(AngularFireAuth);
+
+  private subject = new BehaviorSubject<Array<Todo>>([]);
+  public todos: Observable<Array<Todo>> = this.subject.asObservable();
 
   constructor() {
     this.afAuth.authState
       .pipe(
         filter((state: any) => {
-          if(state === null) {
+          if (state === null) {
             // Reset local variables if user is not logged in
             this.userUid = '';
-            this.todos = [];
+            this.subject.next([]);
             // Early return, skips return true below if called
-            return false
+            return false;
           }
-          return true
+          return true;
         }),
         switchMap((state) => {
           this.userUid = state.uid;
-          // Pushes cannot contain console.logs on our rhyno environment
-          // console.log(state);
           const itemCollection = collection(this.firestore, 'todos');
           const refq = query(
             itemCollection,
-            where('userUid', '==', this.userUid),
+            where('userUid', '==', this.userUid)
           );
           return collectionSnapshots(refq).pipe(
             // Force listeners to unsubscribe when user is logged out. Otherwise this observable will keep firing even when logged out.
             takeUntil(
-              this.afAuth.authState
-                .pipe(
-                  filter((state: any) => state === null)
-                )
+              this.afAuth.authState.pipe(filter((state: any) => state === null))
             ),
             filter((snapshots) => {
-              return snapshots.filter((snapshot) => Boolean(snapshot.metadata.hasPendingWrites)).length === 0
+              return (
+                snapshots.filter((snapshot) =>
+                  Boolean(snapshot.metadata.hasPendingWrites)
+                ).length === 0
+              );
             })
           );
         }),
-      distinctUntilChanged()
+        distinctUntilChanged()
       )
       .subscribe((data) => {
-        // Pushes cannot contain console.logs on our rhyno environment
-        // console.log(data);
-        this.todos = data
-          .map((doc) => {
-            doc.data();
-            return {
-              id: doc.id,
-              ...(doc.data() as Object),
-            } as Todo;
-          })
-          .sort((a, b) => {
-            return a.dueDate > b.dueDate ? 1 : -1;
-          });
+        this.subject.next(
+          data
+            .map((doc) => {
+              doc.data();
+              return {
+                id: doc.id,
+                ...(doc.data() as Object),
+              } as Todo;
+            })
+            .sort((a, b) => {
+              return a.dueDate > b.dueDate ? 1 : -1;
+            })
+        );
       });
   }
 

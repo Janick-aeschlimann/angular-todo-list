@@ -1,7 +1,13 @@
 import { TodoListService } from './../shared/todo-list.service';
 import { Component, OnInit } from '@angular/core';
 
-import { formatDate, NgFor, NgStyle, DatePipe } from '@angular/common';
+import {
+  formatDate,
+  NgFor,
+  NgStyle,
+  DatePipe,
+  AsyncPipe,
+} from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TodoFilterPipePipe } from '../pipes/todo-filter-pipe.pipe';
 
@@ -9,7 +15,14 @@ import { TodoFilterPipePipe } from '../pipes/todo-filter-pipe.pipe';
   selector: 'app-todo-list',
   templateUrl: './todo-list.component.html',
   styleUrls: ['./todo-list.component.scss'],
-  imports: [FormsModule, NgFor, NgStyle, DatePipe, TodoFilterPipePipe],
+  imports: [
+    FormsModule,
+    NgFor,
+    NgStyle,
+    DatePipe,
+    TodoFilterPipePipe,
+    AsyncPipe,
+  ],
   standalone: true,
 })
 export class TodoListComponent implements OnInit {
