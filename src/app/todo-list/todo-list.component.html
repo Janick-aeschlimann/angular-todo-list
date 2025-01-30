@@ -8,11 +8,9 @@
 
 <p>Done anzeigen: <input type="checkbox" [(ngModel)]="showDone" /></p>
 
-<!-- <div *ngFor="let item of todoListService.getTodos(showDone ? undefined : false) | async"> -->
 <div
   *ngFor="
-    let item of todoListService.todos
-      | todoFilterPipe : (showDone ? null : false)
+    let item of todoListService.todos | todoFilterPipe : (showDone ? null : false) | async
   "
 >
   <button (click)="todoListService.toggleDoneStateById(item)">Done</button>
@@ -28,6 +26,6 @@
 </div>
 
 <p>
-  Todo: {{ (todoListService.todos | todoFilterPipe : false).length }}<br />
-  Done: {{ todoListService.todos.length }}
+  Todo: {{ (todoListService.todos | todoFilterPipe : false | async)?.length }}<br />
+  Done: {{ (todoListService.todos | todoFilterPipe : true | async)?.length }}
 </p>

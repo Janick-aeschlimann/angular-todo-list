@@ -1,56 +1,101 @@
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { Injectable } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import {
+  BehaviorSubject,
+  distinctUntilChanged,
+  filter,
+  from,
+  map,
+  Observable,
+  Subscription,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+  toArray,
+} from 'rxjs';
 import { Todo } from './todo';
+import {
+  addDoc,
+  collection,
+  Firestore,
+  query,
+  where,
+  deleteDoc,
+  doc,
+  updateDoc,
+  collectionSnapshots,
+} from '@angular/fire/firestore';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TodoListService {
-  public todos: Todo[] = [];
-
   private userUid = '';
-  private todoSubscription: Subscription = Subscription.EMPTY;
+  private firestore = inject(Firestore);
+  private afAuth = inject(AngularFireAuth);
 
-  constructor(
-    public firestore: AngularFirestore,
-    public afAuth: AngularFireAuth
-  ) {
-    this.afAuth.authState.subscribe((state) => {
-      if (state?.uid) {
-        this.userUid = state.uid;
+  private subject = new BehaviorSubject<Array<Todo>>([]);
+  public todos: Observable<Array<Todo>> = this.subject.asObservable();
 
-        this.todoSubscription = this.firestore
-          .collection<any>('todos', (ref) => {
-            return ref.where('userUid', '==', state.uid);
-          })
-          .snapshotChanges()
-          .subscribe((data) => {
-            this.todos = data
-              .map((e) => {
-                return {
-                  id: e.payload.doc.id,
-                  ...e.payload.doc.data(),
-                } as Todo;
-              })
-              .sort((a, b) => {
-                return a.dueDate > b.dueDate ? 1 : -1;
-              });
-          });
-      } else {
-        if (this.todoSubscription) {
-          this.todoSubscription.unsubscribe();
-        }
-
-        this.userUid = '';
-        this.todos = [];
-      }
-    });
+  constructor() {
+    this.afAuth.authState
+      .pipe(
+        filter((state: any) => {
+          if (state === null) {
+            // Reset local variables if user is not logged in
+            this.userUid = '';
+            this.subject.next([]);
+            // Early return, skips return true below if called
+            return false;
+          }
+          return true;
+        }),
+        switchMap((state) => {
+          this.userUid = state.uid;
+          const itemCollection = collection(this.firestore, 'todos');
+          const refq = query(
+            itemCollection,
+            where('userUid', '==', this.userUid)
+          );
+          return collectionSnapshots(refq).pipe(
+            // Force listeners to unsubscribe when user is logged out. Otherwise this observable will keep firing even when logged out.
+            takeUntil(
+              this.afAuth.authState.pipe(filter((state: any) => state === null))
+            ),
+            filter((snapshots) => {
+              return (
+                snapshots.filter((snapshot) =>
+                  Boolean(snapshot.metadata.hasPendingWrites)
+                ).length === 0
+              );
+            })
+          );
+        }),
+        distinctUntilChanged()
+      )
+      .subscribe((data) => {
+        this.subject.next(
+          data
+            .map((doc) => {
+              doc.data();
+              return {
+                id: doc.id,
+                ...(doc.data() as Object),
+              } as Todo;
+            })
+            .sort((a, b) => {
+              return a.dueDate > b.dueDate ? 1 : -1;
+            })
+        );
+      });
   }
 
+  ngOnInit(): void {}
+
   public addTodo(description: string, dueDate: Date): void {
-    this.firestore.collection('todos').add({
+    const itemCollection = collection(this.firestore, 'todos');
+    addDoc(itemCollection, {
       description: description,
       dueDate: dueDate,
       userUid: this.userUid,
@@ -58,18 +103,19 @@ export class TodoListService {
   }
 
   public deleteTodoById(id: string): void {
-    this.firestore.doc('todos/' + id).delete();
+    deleteDoc(doc(this.firestore, 'todos/' + id));
   }
 
   public updateTodoById(todo: Todo): void {
-    this.firestore
-      .doc('todos/' + todo.id)
-      .update({ description: todo.description, dueDate: todo.dueDate });
+    updateDoc(doc(this.firestore, 'todos/' + todo.id), {
+      description: todo.description,
+      dueDate: todo.dueDate,
+    });
   }
 
   public toggleDoneStateById(todo: Todo): void {
-    this.firestore
-      .doc('todos/' + todo.id)
-      .update({ doneDate: todo.doneDate ? null : new Date() });
+    updateDoc(doc(this.firestore, 'todos/' + todo.id), {
+      doneDate: todo.doneDate ? null : new Date(),
+    });
   }
 }

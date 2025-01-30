@@ -1,12 +1,15 @@
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { GoogleAuthProvider } from '@angular/fire/auth';
+import { NgIf, AsyncPipe } from '@angular/common';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
+  standalone: true,
+  imports: [RouterLink, NgIf, RouterOutlet, AsyncPipe]
 })
 export class AppComponent {
   constructor(public afAuth: AngularFireAuth, public router: Router) {}

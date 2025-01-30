@@ -1,15 +1,15 @@
 <h2>Dashboard</h2>
 <div class="bar-chart">
   <div
-    [ngStyle]="{ width: getTodoPercentage().toString() + '%' }"
+    [ngStyle]="{ width: (getTodoPercentage() | async )?.toString() + '%' }"
     class="todo-bar"
   >
-    Todo: {{ getTodoPercentage() | number : "1.0-0" }} %
+    Todo: {{ getTodoPercentage() | async | number : "1.0-0" }} %
   </div>
   <div
-    [ngStyle]="{ width: getDonePercentage().toString() + '%' }"
+    [ngStyle]="{ width: (getDonePercentage() | async)?.toString() + '%' }"
     class="done-bar"
   >
-    Done: {{ getDonePercentage() | number : "1.0-0" }} %
+    Done: {{ getDonePercentage() | async | number : "1.0-0" }} %
   </div>
 </div>
